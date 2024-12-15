@@ -47,11 +47,19 @@ def serialize_tag_optimized(tag):
 def index(request):
     
     all_posts = Post.objects.all().prefetch_related('author', 'comments', 'tags')
-    most_popular_posts = all_posts.annotate(likes_count=Count('likes')).order_by('-likes_count')[:5]
+    most_popular_posts = all_posts.popular()[:5]
     most_fresh_posts = all_posts.order_by('-published_at')[:5] 
+    
+    most_popular_posts_ids = [post.id for post in most_popular_posts]
+    posts_with_comments = Post.objects.filter(id__in=most_popular_posts_ids).annotate(comments_count=Count('comments'))
+    ids_and_comments = posts_with_comments.values_list('id', 'comments_count')
+    count_for_id = dict(ids_and_comments) 
+    
+    for post in most_popular_posts:
+        post.comments_count = count_for_id[post.id]
 
     tags = Tag.objects.all()
-    most_popular_tags = tags.annotate(tags_count=Count('posts')).order_by('-tags_count')[:5] 
+    most_popular_tags = tags.popular()[:5] 
 
     context = {
         'most_popular_posts': [
@@ -91,10 +99,10 @@ def post_detail(request, slug):
     }
 
     all_tags = Tag.objects.all()
-    most_popular_tags = all_tags.annotate(tags_count=Count('posts')).order_by('-tags_count')[:5] 
+    most_popular_tags = all_tags.popular()[:5] 
 
     all_posts = Post.objects.all().prefetch_related('author')
-    most_popular_posts = all_posts.annotate(likes_count=Count('likes')).order_by('-likes_count')[:5]
+    most_popular_posts = all_posts.popular()[:5]
 
     context = {
         'post': serialized_post,
@@ -110,10 +118,10 @@ def tag_filter(request, tag_title):
     tag = Tag.objects.get(title=tag_title)
 
     all_tags = Tag.objects.all()
-    most_popular_tags = all_tags.annotate(tags_count=Count('posts')).order_by('-tags_count')[:5] 
+    most_popular_tags = all_tags.popular()[:5] 
 
     all_posts = Post.objects.all().prefetch_related('author')
-    most_popular_posts = all_posts.annotate(likes_count=Count('likes')).order_by('-likes_count')[:5]
+    most_popular_posts = all_posts.popular()[:5]
 
     related_posts = tag.posts.all()[:20]
 
