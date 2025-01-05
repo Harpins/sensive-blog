@@ -4,19 +4,26 @@ from django.contrib.auth.models import User
 
 
 class PostQuerySet(models.QuerySet):
-    def popular(self):
-        popular_posts = self.annotate(likes_count=models.Count("likes")).order_by(
-            "-likes_count"
+    def prefetch_parameters(self):
+        parameters_prefetched = self.prefetch_related(
+            "author",
+            "comments",
+            models.Prefetch("tags", queryset=Tag.objects.count_posts()),
+        ).annotate(likes_count=models.Count("likes"))
+        return parameters_prefetched
+
+    def count_tags(self):
+        tags_count = self.prefetch_related(
+            models.Prefetch("tags", queryset=Tag.objects.count_posts()),
         )
-        return popular_posts
+        return tags_count
 
 
 class TagQueryset(models.QuerySet):
-    def popular(self):
-        popular_tags = self.annotate(posts_count=models.Count("posts")).order_by(
-            "-posts_count"
-        )
-        return popular_tags
+    def count_posts(self):
+        posts_count = self.order_by("title").annotate(
+            posts_count=models.Count("posts"))
+        return posts_count
 
 
 class Post(models.Model):
