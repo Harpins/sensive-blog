@@ -44,7 +44,7 @@ def detalize_post(post):
         "text": post.text,
         "author": post.author,
         "comments": serialized_comments,
-        "likes_amount": post.likes.count(),
+        "likes_amount": post.likes_count,
         "image_url": post.image.url if post.image else None,
         "published_at": post.published_at,
         "slug": post.slug,
@@ -70,10 +70,10 @@ def index(request):
     all_posts = Post.objects.prefetch_parameters()
 
     most_popular_posts = all_posts.order_by("-likes_count")[:5]
-    count_comments(most_popular_posts)
+    most_popular_posts.count_comments()
 
     most_fresh_posts = all_posts.order_by("-published_at")[:5]
-    count_comments(most_fresh_posts)
+    most_fresh_posts.count_comments()
 
     most_popular_tags = Tag.objects.count_posts().order_by("-posts_count")[:5]
 
@@ -87,10 +87,10 @@ def index(request):
 
 def post_detail(request, slug):
     all_posts = Post.objects.prefetch_parameters()
-    post = get_object_or_404(Post, slug=slug)
+    post = get_object_or_404(all_posts, slug=slug)
 
     most_popular_posts = all_posts.order_by("-likes_count")[:5]
-    count_comments(most_popular_posts)
+    most_popular_posts.count_comments()
 
     most_popular_tags = Tag.objects.count_posts().order_by("-posts_count")[:5]
 
@@ -107,12 +107,12 @@ def tag_filter(request, tag_title):
     tag = get_object_or_404(Tag, title=tag_title)
 
     most_popular_posts = all_posts.order_by("-likes_count")[:5]
-    count_comments(most_popular_posts)
+    most_popular_posts.count_comments()
 
     most_popular_tags = Tag.objects.count_posts().order_by("-posts_count")[:5]
 
     related_posts = tag.posts.count_tags()[:10]
-    count_comments(related_posts)
+    related_posts.count_comments()
 
     context = {
         "tag": tag.title,
