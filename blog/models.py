@@ -9,8 +9,12 @@ class PostQuerySet(models.QuerySet):
             "author",
             "comments",
             models.Prefetch("tags", queryset=Tag.objects.count_posts()),
-        ).annotate(likes_count=models.Count("likes"))
+        )
         return parameters_prefetched
+
+    def count_likes(self):
+        likes_count = self.annotate(likes_count=models.Count("likes"))
+        return likes_count
 
     def count_tags(self):
         tags_count = self.prefetch_related(
