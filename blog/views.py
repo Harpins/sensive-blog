@@ -1,7 +1,5 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from blog.models import Post, Tag
-from django.db.models import Count
-from django.shortcuts import get_object_or_404
 
 
 def serialize_post(post):
@@ -37,7 +35,7 @@ def detalize_post(post):
             }
         )
 
-    related_tags = post.tags.annotate(posts_count=Count("posts"))
+    related_tags = post.tags.count_posts()
 
     detalized_post = {
         "title": post.title,
@@ -54,20 +52,8 @@ def detalize_post(post):
     return detalized_post
 
 
-def count_comments(posts):
-    posts_ids = [post.id for post in posts]
-    posts_with_comments = Post.objects.filter(id__in=posts_ids).annotate(
-        comments_count=Count("comments")
-    )
-    ids_and_comments = posts_with_comments.values_list("id", "comments_count")
-    count_for_id = dict(ids_and_comments)
-    for post in posts:
-        post.comments_count = count_for_id[post.id]
-    return
-
-
 def index(request):
-    all_posts = Post.objects.prefetch_parameters()
+    all_posts = Post.objects.prefetch_parameters().count_likes()
 
     most_popular_posts = all_posts.order_by("-likes_count")[:5]
     most_popular_posts.count_comments()
@@ -86,7 +72,7 @@ def index(request):
 
 
 def post_detail(request, slug):
-    all_posts = Post.objects.prefetch_parameters()
+    all_posts = Post.objects.prefetch_parameters().count_likes()
     post = get_object_or_404(all_posts, slug=slug)
 
     most_popular_posts = all_posts.order_by("-likes_count")[:5]
@@ -103,7 +89,7 @@ def post_detail(request, slug):
 
 
 def tag_filter(request, tag_title):
-    all_posts = Post.objects.prefetch_parameters()
+    all_posts = Post.objects.prefetch_parameters().count_likes()
     tag = get_object_or_404(Tag, title=tag_title)
 
     most_popular_posts = all_posts.order_by("-likes_count")[:5]
